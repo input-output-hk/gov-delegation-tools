@@ -2,7 +2,7 @@
 
 These definitions extend [CIP 30 (Cardano dApp-Wallet Web Bridge)](https://cips.cardano.org/cips/cip30/) to provide specific support for vote delegation.
 They enable the construction of transactions containing metadata that conforms to
-[Catalyst/Voltaire Registration Transaction Metadata Format (Updated)](https://cips.cardano.org/cips/cip36/),
+[CIP 36 (Catalyst/Voltaire Registration Transaction Metadata Format - Updated)](https://cips.cardano.org/cips/cip36/),
 enabling new functionality including vote delegation to either private or public representatives (dReps),
 splitting or combining of private votes,
 the use of different voting keys or delegations
@@ -29,7 +29,9 @@ type GovernanceKey = {
 
 `voting_key`: Ed25519 pubkey 32 bytes HEX string  
 
-`weight`: The voting power associated with each voting key in the delegation array is calculated as the weighted fraction of the total voting power (rounded down);
+`weight`: Used to calculate the actual voting power using the rules described
+in 
+[CIP 36](https://cips.cardano.org/cips/cip36/).
 
 
 ### **Purpose**
