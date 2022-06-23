@@ -4,6 +4,13 @@
 
 This document describe the interface between webpage / web-based stack and cardano wallets. This specificies that API of the javascript object that need to be injected into the web applications in order to support all the Governance features.
 
+These definitions extend [CIP-30 (Cardano dApp-Wallet Web Bridge)](https://cips.cardano.org/cips/cip30/) to provide specific support for vote delegation.
+They enable the construction of transactions containing metadata that conforms to
+[CIP-36 (Catalyst/Voltaire Registration Transaction Metadata Format - Updated)](https://cips.cardano.org/cips/cip36/),
+enabling new functionality including vote delegation to either private or public representatives (dReps),
+splitting or combining of private votes,
+the use of different voting keys or delegations
+for different purposes (Catalyst etc).
 
 ## **Namespace**
 
@@ -24,7 +31,9 @@ type GovernanceKey = {
 
 `voting_key`: Ed25519 pubkey 32 bytes HEX string  
 
-`weight`: The voting power associated with each voting key in the delegation array is calculated as the weighted fraction of the total voting power (rounded down);
+`weight`: Used to calculate the actual voting power using the rules described
+in 
+[CIP-36](https://cips.cardano.org/cips/cip36/).
 
 
 ### **Purpose**
@@ -37,7 +46,7 @@ type enum Purpose = {
 
 ```
 
-`Purpose`: Defines the purpose of the delegations. This is used to limit the scope of the delegations 
+`Purpose`: Defines the purpose of the delegations. This is used to limit the scope of the delegations.  For example, a purpose might be a subset of Catalyst proposals, a council election, or even some private purpose (agreed by convention).
 
 
 # **`API`**
@@ -57,7 +66,7 @@ The **`voting_key`** should be derived from the following path.
 m / 1694' / 1815' / account' / role' / address_index'
 ```
 
-`1694` (year Voltaire’s was born) Sets a dedicated `purpose` in the derivation path for the voting profile.  
+`1694` (year Voltaire was born) Sets a dedicated `purpose` in the derivation path for the voting profile.  
 
 `address_index` - index of the key to use. 
 
@@ -88,27 +97,25 @@ export interface Delegation {
 }
 ```
 
-Defines the structure to be crafted and signed for delegation of voting & their respectively voting power. 
+Defines the structure to be crafted and signed for delegation of voting & their respectively voting power.   Embeds the stake key and reward address from the wallet, and constructs a suitable nonce.
 
-***`voting_delegation`***: List of keys and their voting weight to delegate voting power to
+***`voting_delegation`***: List of keys and their voting weight to delegate voting power to.
 
-The ***`staking_key`*** is Ed25519 public key 32bytes (x only) associated with your staking address. Defined in `CIP-11`, which specifies the derivation path for the staking key: 
+The ***`staking_key`*** is Ed25519 public key 32bytes (x only) associated with the stake address. Defined in [CIP-11]((https://cips.cardano.org/cips/cip11), which specifies the derivation path for the staking key: 
 
 ```
 m / 1852' / 1815' / account' / chain / 0
 ```
 
-The ***`reward_address`*** as specified in `CIP-8` [here](https://cips.cardano.org/cips/cip8/#addressformats) 
+The ***`reward_address`*** as specified in [CIP-8](https://cips.cardano.org/cips/cip8/#addressformats) 
 
 
-The ***`nonce`*** is an unsigned integer (of CBOR major type 0) that should be monotonically rising across all transactions with the same staking key. It's up to the wallet to manage this and to guarantee that these are always unique and higher than the previous one. An advised nonce value is `linux epoch timestamp`.
+The ***`nonce`*** is an unsigned integer (of CBOR major type 0) that should be monotonically increasing across all transactions with the same staking key. The wallet manages this and guarantees that nonces are always unique and greater than the previous ones. A suitable nonce value is the `linux epoch timestamp`.
 
 
 ## **api.signDelegation**(delegation: DelegationMetadata, account: number = 0, role: number = 0, index: number = 0): Promise\<**`SignedDelegationMetadata`**>
 
-Given that since `CIP-18`, multi-staking keys should be considered; but that a single voting profile should exist per wallet. A single staking key should be used to perform EDDSA over the voting profile blake2b-256 hash.
-
-The staking key used should still be the one defined in `CIP-11`. 
+Since [CIP-18](https://cips.cardano.org/cips/cip18), multi-staking keys should be considered.  However, a single voting profile should exist per wallet. A single staking key should be used to perform EDDSA over the voting profile blake2b-256 hash.  The staking key used should still be the one defined in [CIP-11]((https://cips.cardano.org/cips/cip11). 
 
 ### **Returns**
 
@@ -123,9 +130,9 @@ export interface SignedDelegationMetadata {
 
 Defines the result of signing the DelegationMetadata.
 
-`61284`: Key that defines the registration metadata map
+- `61284`: Key that defines the registration metadata map
 
-`61285`: Signature of the blake2b hash of the `DelegationMetadata`
+- `61285`: Signature of the blake2b hash of the `DelegationMetadata`
 
 ## **api.submitMetadataTx(tx: MetadataTransaction): Promise\<hash32>**
 
@@ -154,8 +161,8 @@ In case of acceptance, the wallet should return the transaction hash.
 
 2. **`Craft delegation cert`** - Use **api.buildDelegation** to construct the object containing the key array set to delegate voting power to. Each value will express the `weight` of the voting powers given.
 
-3. **`Sign the delegation cert`** - Use **api.signDelegation** sign the blake2b hash of the delegation cert and append it to the cert
+3. **`Sign the delegation cert`** - Use **api.signDelegation** to sign the blake2b hash of the delegation cert and append it to the cert
 
 4. **`Encode`** - Cbor encode the cert to be used in the metadata transaction
 
-5. **`Broad cast metadata tx`** - Push metadata transaction
+5. **`Broadcast metadata tx`** - Submit the metadata transaction to the chain using **api.submitMetadataTx**.
