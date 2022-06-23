@@ -1,5 +1,9 @@
 # `Governance API`
 
+## **Abstract**
+
+This document describe the interface between webpage / web-based stack and cardano wallets. This specificies that API of the javascript object that need to be injected into the web applications in order to support all the Governance features.
+
 These definitions extend [CIP-30 (Cardano dApp-Wallet Web Bridge)](https://cips.cardano.org/cips/cip30/) to provide specific support for vote delegation.
 They enable the construction of transactions containing metadata that conforms to
 [CIP-36 (Catalyst/Voltaire Registration Transaction Metadata Format - Updated)](https://cips.cardano.org/cips/cip36/),
@@ -10,10 +14,8 @@ for different purposes (Catalyst etc).
 
 ## **Namespace**
 
-
-### cardano.{walletName}.governance.enable(): Promise\<API>
-
-
+### **cardano.{walletName}.governance.enable(): Promise\<API>**
+The `cardano.{walletName}.governance.enable()` method is used to enable the governance API. It should request permission from the wallet to enable the API. If permission is granted, the rest of the API will be available. 
 
 ## `Types`
 
@@ -49,7 +51,7 @@ type enum Purpose = {
 
 # **`API`**
 
-## **api.getVotingKey**(address_index: number = 0, account: number = 0, role: number = 0): Promise<Bip32PublicKey>: Promise \<**cbor\<vkey>**>
+## **api.getVotingKey**(address_index: number = 0, account: number = 0, role: number = 0): Promise\<Bip32PublicKey>
 
 Should derive and return the wallets voting public key
 
@@ -132,11 +134,26 @@ Defines the result of signing the DelegationMetadata.
 
 - `61285`: Signature of the blake2b hash of the `DelegationMetadata`
 
-### api.submitMetadataTx(tx: cbor\<transaction>): Promise\<hash32>
+## **api.submitMetadataTx(tx: MetadataTransaction): Promise\<hash32>**
+
+```
+export interface MetadataTransaction {
+  type: string,
+  description: string,
+  cboxHex: string
+}
+```
+
+`type`: Defines the type of transaction according to it's era. For example, if the transaction is for the Alonzo era, then the type should be `"Tx AlonzoEra"`.
+
+`description`: A description of the transaction.
+
+`cboxHex`: The cbor encoded hex of `SignedDelegationMetadata`.
 
 Errors: `APIError`, `TxSendError`
 
-This should trigger a request to the wallet to submit a raw cbor-encoded metadata tx. The wallet may refuse or accept the request. 
+This should be trigger a request to the wallet to submit a raw cbor-encoded metadata tx. The wallet may refuse or accept the request.
+In case of acceptance, the wallet should return the transaction hash.
 
 ### Voting profile signing process
 
