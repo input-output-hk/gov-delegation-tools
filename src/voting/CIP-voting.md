@@ -23,13 +23,13 @@ The `cardano.{walletName}.governance.enable()` method is used to enable the gove
 
 ```
 type GovernanceKey = {
-  voting_key: cbor<vkey>,
+  votingKey: cbor<vkey>,
   weight: number
 }
 
 ```
 
-`voting_key`: Ed25519 pubkey 32 bytes HEX string  
+`votingKey`: Ed25519 pubkey 32 bytes HEX string  
 
 `weight`: Used to calculate the actual voting power using the rules described
 in 
@@ -60,7 +60,7 @@ Should derive and return the wallets voting public key
 
 There should be only a single single voting key per wallet / mnemonic. 
 
-The **`voting_key`** should be derived from the following path. 
+The **`votingKey`** should be derived from the following path. 
 
 ```
 m / 1694' / 1815' / account' / role' / address_index'
