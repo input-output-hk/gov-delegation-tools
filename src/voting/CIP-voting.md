@@ -1,21 +1,29 @@
-# `Governance API`
+---
+CIP: 62
+Title: Cardano dApp-Connector Governance extension
+Authors: ehanoc
+Comments-URI: https://github.com/cardano-foundation/CIPs/pull/88
+Status: Draft
+Type: Standards
+Created: 2021-06-11
+License: CC-BY-4.0
+---
 
-## **Abstract**
+# **Abstract**
 
 This document describe the interface between webpage / web-based stack and cardano wallets. This specificies that API of the javascript object that need to be injected into the web applications in order to support all the Governance features.
 
 These definitions extend [CIP-30 (Cardano dApp-Wallet Web Bridge)](https://cips.cardano.org/cips/cip30/) to provide specific support for vote delegation.
-They enable the construction of transactions containing metadata that conforms to
+
+# **Motivation**
+The goal for this CIP is to extend the dApp-Wallet web bridge to enable the construction of transactions containing metadata that conforms to
 [CIP-36 (Catalyst/Voltaire Registration Transaction Metadata Format - Updated)](https://cips.cardano.org/cips/cip36/),
 enabling new functionality including vote delegation to either private or public representatives (dReps),
 splitting or combining of private votes,
 the use of different voting keys or delegations
 for different purposes (Catalyst etc).
 
-## **Namespace**
-
-### **cardano.{walletName}.governance.enable(): Promise\<API>**
-The `cardano.{walletName}.governance.enable()` method is used to enable the governance API. It should request permission from the wallet to enable the API. If permission is granted, the rest of the API will be available. 
+# **Specification**
 
 ## `Types`
 
@@ -23,7 +31,7 @@ The `cardano.{walletName}.governance.enable()` method is used to enable the gove
 
 ```
 type GovernanceKey = {
-  votingKey: cbor<vkey>,
+  votingKey: string,
   weight: number
 }
 
@@ -48,6 +56,12 @@ type enum Purpose = {
 
 `Purpose`: Defines the purpose of the delegations. This is used to limit the scope of the delegations.  For example, a purpose might be a subset of Catalyst proposals, a council election, or even some private purpose (agreed by convention).
 
+## **Namespace**
+
+### **cardano.{walletName}.governance.enable(): Promise\<API>**
+The `cardano.{walletName}.governance.enable()` method is used to enable the governance API. It should request permission from the wallet to enable the API. If permission is granted, the rest of the API will be available. The walelt may choose to maintain a whitelist of allowed clients to avoid asking for permission every time.
+
+This api being an extension of [CIP-30 (Cardano dApp-Wallet Web Bridge)](https://cips.cardano.org/cips/cip30/), expects that `cardano.{walletName}.enable()` to be enabled implicitly. 
 
 # **`API`**
 
@@ -134,26 +148,13 @@ Defines the result of signing the DelegationMetadata.
 
 - `61285`: Signature of the blake2b hash of the `DelegationMetadata`
 
-## **api.submitMetadataTx(tx: MetadataTransaction): Promise\<hash32>**
+## **api.submitDelegation(delegation: SignedDelegationMetadataw): Promise\<hash32>**
 
-```
-export interface MetadataTransaction {
-  type: string,
-  description: string,
-  cboxHex: string
-}
-```
+This should be a call that implicitly cbor encodes the `delegation` object and uses the already existing [CIP-30](https://cips.cardano.org/cips/cip30/) `api.submitTx` to submit the transaction. The resulting transaction hash should be returned.
 
-`type`: Defines the type of transaction according to it's era. For example, if the transaction is for the Alonzo era, then the type should be `"Tx AlonzoEra"`.
-
-`description`: A description of the transaction.
-
-`cboxHex`: The cbor encoded hex of `SignedDelegationMetadata`.
+This should be trigger a request to the wallet to approve the transaction.
 
 Errors: `APIError`, `TxSendError`
-
-This should be trigger a request to the wallet to submit a raw cbor-encoded metadata tx. The wallet may refuse or accept the request.
-In case of acceptance, the wallet should return the transaction hash.
 
 ### Voting profile signing process
 
@@ -163,6 +164,4 @@ In case of acceptance, the wallet should return the transaction hash.
 
 3. **`Sign the delegation cert`** - Use **api.signDelegation** to sign the blake2b hash of the delegation cert and append it to the cert
 
-4. **`Encode`** - Cbor encode the cert to be used in the metadata transaction
-
-5. **`Broadcast metadata tx`** - Submit the metadata transaction to the chain using **api.submitMetadataTx**.
+4. **`Submit delegation`** - Submit the metadata transaction to the chain using **api.submitDelegation** which implicitly can use the already existing **api.submitTx**,  available from [CIP-30](https://cips.cardano.org/cips/cip30/)
