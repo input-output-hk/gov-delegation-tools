@@ -1,8 +1,7 @@
 ---
 CIP: 62
 Title: Cardano dApp-Connector Governance extension
-Authors: ehanoc
-Comments-URI: https://github.com/cardano-foundation/CIPs/pull/88
+Authors: Bruno Martins <bruno.martins@iohk.io>
 Status: Draft
 Type: Standards
 Created: 2021-06-11
