@@ -216,9 +216,6 @@ This should be trigger a request to the wallet to approve the transaction.
 
 Errors: `APIError`, `TxSendError`
 
-## **api.submitVote(cbor<vote>): Promise<hash32>**
-
-
 ### Delegation Cert process
 
 1. **`Get Voting Key`** - use the method **api.getVotingKey** to return a ed25519 32 bytes public key (x value of the point on the curve).
