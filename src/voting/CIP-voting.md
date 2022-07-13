@@ -55,6 +55,17 @@ type enum Purpose = {
 
 `Purpose`: Defines the purpose of the delegations. This is used to limit the scope of the delegations.  For example, a purpose might be a subset of Catalyst proposals, a council election, or even some private purpose (agreed by convention).
 
+### **KeyPath**
+```
+interface KeyPath = {
+  address_index: number 
+  account: number
+  role: number
+}
+```
+
+
+
 ## **Namespace**
 
 ### **cardano.{walletName}.governance.enable(): Promise\<API>**
@@ -62,9 +73,59 @@ The `cardano.{walletName}.governance.enable()` method is used to enable the gove
 
 This api being an extension of [CIP-30 (Cardano dApp-Wallet Web Bridge)](https://cips.cardano.org/cips/cip30/), expects that `cardano.{walletName}.enable()` to be enabled implicitly. 
 
-# **`API`**
+# **`Jormungandr API`**
 
-## **api.getVotingKey**(address_index: number = 0, account: number = 0, role: number = 0): Promise\<Bip32PublicKey>
+## **api.connectToNode**(url: string): Promise\<API>
+
+The `api.connectToNode` method is used to connect to a Jormungandr node.
+
+## **api.submitVote**(keyPath: KeyPath, proposal: Proposal, choice: Choice, validUntil: BlockDate, spendingCounter: number): Promise\<hash32>
+
+`keyPath`: The derivation path values to the voting key for which transaction should be signed with. The derivation path should follow the already establish in [CIP-36 (Catalyst/Voltaire Registration Transaction Metadata Format - Updated)](https://cips.cardano.org/cips/cip36/). 
+_`m / 1694' / 1815' / account' / role' / address_index'`_
+
+
+`proposal` : proposal information. Include the range of options we can use to vote. This defines the allowed values in `choice`.
+
+```
+interface Proposal {
+  votePlanId: number
+  index: number
+  voteOptions: number[]
+}
+```
+
+`choice`: The choice we want to vote for. An `UnkownChoiceError` should be thrown is the value is not within the `proposal` option set.
+
+`validUntil`: chain epoch \& slot for when the vote will expire.
+
+```
+interface BlockDate {
+    epoch: number
+    slot: number
+}
+```
+
+### Returns
+
+`hash32` - This is the hash of the transaction that will be submitted to the node.
+
+#### Errors
+`InvalidArgumentError` - Generic error for errors in the formatting of the arguments.
+
+`UnknownChoiceError` - If the `choice` is not within the `proposal` option set.
+
+`InvalidBlockDateError` - If the `validUntil` is not a valid block date.
+
+`InvalidVotingKeyError` - If the `keyPath` is not a valid voting key.
+
+`InvalidVotePlanError` - If the `votePlanId` is not a valid vote plan.
+
+`InvalidVoteOptionError` - If the `index` is not a valid vote option.
+
+# **`Delegation API`**
+
+## **api.getVotingKey**(path: KeyPath): Promise\<Bip32PublicKey>
 
 Should derive and return the wallets voting public key
 
@@ -155,12 +216,17 @@ This should be trigger a request to the wallet to approve the transaction.
 
 Errors: `APIError`, `TxSendError`
 
-### Voting profile signing process
+## **api.submitVote(cbor<vote>): Promise<hash32>**
 
-1. **`Get Voting Key`** - use the method **api.getVotingKey** to return a ed25519 32 bytes public key (x value of the point on the curve)
 
-2. **`Craft delegation cert`** - Use **api.buildDelegation** to construct the object containing the key array set to delegate voting power to. Each value will express the `weight` of the voting powers given.
+### Delegation Cert process
 
-3. **`Sign the delegation cert`** - Use **api.signDelegation** to sign the blake2b hash of the delegation cert and append it to the cert
+1. **`Get Voting Key`** - use the method **api.getVotingKey** to return a ed25519 32 bytes public key (x value of the point on the curve).
 
-4. **`Submit delegation`** - Submit the metadata transaction to the chain using **api.submitDelegation** which implicitly can use the already existing **api.submitTx**,  available from [CIP-30](https://cips.cardano.org/cips/cip30/)
+2. **`Collect Voting Keys`** - Collect the keys to delegate voting power to.
+
+3. **`Craft delegation cert`** - Use **api.buildDelegation** to construct the object containing the key array set to delegate voting power to. Each value will express the `weight` of the voting powers given.
+
+4. **`Sign the delegation cert`** - Use **api.signDelegation** to sign the blake2b hash of the delegation cert and append it to the cert
+
+5. **`Submit delegation`** - Submit the metadata transaction to the chain using **api.submitDelegation** which implicitly can use the already existing **api.submitTx**,  available from [CIP-30](https://cips.cardano.org/cips/cip30/)
